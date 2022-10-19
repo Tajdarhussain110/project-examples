@@ -1,0 +1,61 @@
+pipeline {
+    agent {label 'new-1'}
+
+    stages {
+        stage ('Clone') {
+            steps {
+                git branch: 'master', url: "https://github.com/Tajdarhussain110/project-examples.git"
+            }
+        }
+
+        stage ('Artifactory configuration') {
+            steps {
+                rtServer (
+                    id: "jfog",
+                    url: https://qtdevops456.jfrog.io/,
+                    credentialsId: CREDENTIALS
+                )
+
+                rtNpmResolver (
+                    id: "NPM_RESOLVER",
+                    serverId: "ARTIFACTORY_SERVER",
+                    repo: "npm-remote"
+                )
+
+                rtNpmDeployer (
+                    id: "NPM_DEPLOYER",
+                    serverId: "ARTIFACTORY_SERVER",
+                    repo: "npm-local"
+                )
+            }
+        }
+
+        stage ('Exec npm install') {
+            steps {
+                rtNpmInstall (
+                    tool: NPM_TOOL, // Tool name from Jenkins configuration
+                    path: "/usr/share/npm /home/ubuntu/.nvm/versions/node/v16.2.0/bin/npm /usr/share/man/man1/npm",
+                    resolverId: "NPM_RESOLVER"
+                )
+            }
+        }
+
+        stage ('Exec npm publish') {
+            steps {
+                rtNpmPublish (
+                    tool: NPM_TOOL, // Tool name from Jenkins configuration
+                    path: "npm-example",
+                    deployerId: "NPM_DEPLOYER"
+                )
+            }
+        }
+
+        stage ('Publish build info') {
+            steps {
+                rtPublishBuildInfo (
+                    serverId: "https://qtdevops456.jfrog.io/"
+                )
+            }
+        }
+    }
+}
